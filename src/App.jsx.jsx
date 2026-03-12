@@ -969,9 +969,9 @@ function PropCard({ prop, partyKey, explanationCache }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 // GRADIENT AI AGENT — DigitalOcean hosted voter Q&A
 // ═══════════════════════════════════════════════════════════════════════════════
-const GRADIENT_AGENT_URL = "https://n3cyh5uwo2knfbn3sgzf5flz.agents.do-ai.run";
+const GRADIENT_AGENT_URL = "https://vfwy3efp6waivxqrz34esomw.agents.do-ai.run";
 
-const GRADIENT_ACCESS_KEY = "-ZXt1QAIKeiAqm8-yuO8TsOBchaSbHpg"; 
+const GRADIENT_ACCESS_KEY = "DqrfbyHio_7mEhF_LEvzDCKI69W-2HZf"; 
 
 async function askAgent(question, conversationHistory) {
   try {
