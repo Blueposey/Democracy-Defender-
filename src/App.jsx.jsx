@@ -965,6 +965,205 @@ function PropCard({ prop, partyKey, explanationCache }) {
   );
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GRADIENT AI AGENT — DigitalOcean hosted voter Q&A
+// ═══════════════════════════════════════════════════════════════════════════════
+const GRADIENT_AGENT_URL = "https://n3cyh5uwo2knfbn3sgzf5flz.agents.do-ai.run";
+
+const GRADIENT_ACCESS_KEY = "-ZXt1QAIKeiAqm8-yuO8TsOBchaSbHpg"; 
+
+async function askAgent(question, conversationHistory) {
+  try {
+    const messages = [
+      ...conversationHistory,
+      { role: "user", content: question }
+    ];
+    const res = await fetch(`${GRADIENT_AGENT_URL}/api/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${GRADIENT_ACCESS_KEY}`,
+      },
+      body: JSON.stringify({ messages, stream: false }),
+    });
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content || "Sorry, I couldn't get a response. Please try again.";
+  } catch {
+    return "Connection error. Please check your internet connection and try again.";
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHAT PANEL — Gradient AI powered voter Q&A
+// ═══════════════════════════════════════════════════════════════════════════════
+function ChatPanel({ partyKey, ballot }) {
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content: `Hi! I'm your nonpartisan voter guide for the March 3, 2026 Texas primary. I can answer questions about candidates, races, offices, and propositions on your ${ballot.city} ballot. What would you like to know?`
+    }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+  const C = PARTY_COLORS[partyKey];
+
+  const SUGGESTED = [
+    "What does the Railroad Commissioner actually do?",
+    "What's the difference between Crockett and Talarico?",
+    "Which candidates support property tax elimination?",
+    "What happens if no one gets 50%?",
+    "Explain Proposition 1 in plain language",
+  ];
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const send = async (text) => {
+    const question = text || input.trim();
+    if (!question) return;
+    setInput("");
+    const history = messages.map(m => ({ role: m.role, content: m.content }));
+    setMessages(prev => [...prev, { role: "user", content: question }]);
+    setLoading(true);
+    const answer = await askAgent(question, history);
+    setLoading(false);
+    setMessages(prev => [...prev, { role: "assistant", content: answer }]);
+  };
+
+  return (
+    <div style={{ animation: "fadeIn 0.2s ease" }}>
+      {/* Powered by badge */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        gap: 6, marginBottom: 12,
+        fontSize: 11, color: "#9ca3af",
+        fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+      }}>
+        <span>⚡</span>
+        <span>Powered by DigitalOcean Gradient AI · Strictly nonpartisan</span>
+      </div>
+
+      {/* Suggested questions */}
+      {messages.length <= 1 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: "#9ca3af",
+            letterSpacing: 1.5, textTransform: "uppercase",
+            marginBottom: 8, fontFamily: "'Bebas Neue', sans-serif", fontSize: 12,
+          }}>Suggested Questions</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {SUGGESTED.map(q => (
+              <button key={q} onClick={() => send(q)} style={{
+                background: "white", border: `1px solid ${C.border}`,
+                borderRadius: 8, padding: "9px 13px",
+                fontSize: 13, color: C.text, cursor: "pointer",
+                textAlign: "left", fontFamily: "'Source Serif 4', serif",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={e => e.target.style.background = C.light}
+              onMouseLeave={e => e.target.style.background = "white"}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Message thread */}
+      <div style={{
+        background: "white", border: "1px solid #dde2e8",
+        borderRadius: 12, overflow: "hidden", marginBottom: 10,
+        maxHeight: 420, overflowY: "auto",
+      }}>
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            padding: "12px 15px",
+            background: m.role === "user" ? C.light : "white",
+            borderBottom: i < messages.length - 1 ? "1px solid #f0f2f5" : "none",
+          }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+              textTransform: "uppercase", marginBottom: 5,
+              color: m.role === "user" ? C.text : "#6b7280",
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 11,
+            }}>
+              {m.role === "user" ? "You" : "🗳 Voter Guide"}
+            </div>
+            <p style={{
+              fontSize: 14, color: "#111", lineHeight: 1.7, margin: 0,
+              fontFamily: "'Source Serif 4', serif",
+              whiteSpace: "pre-wrap",
+            }}>{m.content}</p>
+          </div>
+        ))}
+        {loading && (
+          <div style={{ padding: "12px 15px", background: "white" }}>
+            <div style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: 1.5,
+              textTransform: "uppercase", marginBottom: 5,
+              color: "#6b7280", fontFamily: "'Bebas Neue', sans-serif", fontSize: 11,
+            }}>🗳 Voter Guide</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, color: "#9ca3af" }}>
+              <div style={{
+                width: 14, height: 14, borderRadius: "50%",
+                border: "2px solid #e5e7eb", borderTopColor: C.accent,
+                animation: "spin 0.7s linear infinite", flexShrink: 0,
+              }} />
+              <span style={{ fontSize: 13, fontStyle: "italic", animation: "pulse 1.5s ease infinite" }}>
+                Searching knowledge base...
+              </span>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{ display: "flex", gap: 8 }}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && !loading && send()}
+          placeholder="Ask anything about your ballot..."
+          disabled={loading}
+          style={{
+            flex: 1, padding: "12px 15px",
+            border: `2px solid ${input ? C.accent : "#dde2e8"}`,
+            borderRadius: 10, fontSize: 14,
+            fontFamily: "'Source Serif 4', serif",
+            outline: "none", transition: "border-color 0.15s",
+            background: loading ? "#f9fafb" : "white",
+          }}
+        />
+        <button
+          onClick={() => send()}
+          disabled={loading || !input.trim()}
+          style={{
+            padding: "12px 18px", borderRadius: 10,
+            background: input.trim() && !loading ? C.bg : "#e5e7eb",
+            color: input.trim() && !loading ? "white" : "#9ca3af",
+            border: "none", cursor: input.trim() && !loading ? "pointer" : "default",
+            fontFamily: "'Bebas Neue', sans-serif", fontSize: 16, letterSpacing: 1,
+            transition: "all 0.15s",
+          }}
+        >
+          Ask
+        </button>
+      </div>
+      <p style={{
+        fontSize: 11, color: "#9ca3af", marginTop: 6, textAlign: "center",
+        fontFamily: "'Source Serif 4', serif", fontStyle: "italic",
+      }}>
+        This AI provides nonpartisan information only and does not endorse any candidate.
+      </p>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SCREEN: LANDING
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1310,10 +1509,11 @@ function BallotScreen({ zip, onBack }) {
         </div>
 
         {/* Tab bar */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 14 }}>
           {[
-            ["races", "🗳  Races & Candidates"],
-            ["props", "📋  Propositions"],
+            ["races", "🗳 Races"],
+            ["props", "📋 Props"],
+            ["chat", "💬 Ask AI"],
           ].map(([id, label]) => (
             <button
               key={id}
@@ -1362,6 +1562,11 @@ function BallotScreen({ zip, onBack }) {
               );
             })}
           </div>
+        )}
+
+        {/* CHAT TAB */}
+        {tab === "chat" && (
+          <ChatPanel partyKey={partyKey} ballot={ballot} />
         )}
 
         {/* PROPOSITIONS TAB */}
