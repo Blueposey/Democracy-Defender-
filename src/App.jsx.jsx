@@ -668,14 +668,14 @@ function CandidateRow({ name, office, party, partyKey, profileCache }) {
         <div style={{ padding: "0 15px 15px", animation: "fadeUp 0.2s ease" }}>
           {loading && <LoadingRow text={`Searching for ${name.split(" ")[0]}'s record...`} />}
 
-          {failed && (
-            <div style={{
-              padding: "10px 13px", background: "#fffbeb",
-              borderRadius: 7, fontSize: 13, color: "#92400e", lineHeight: 1.5,
-            }}>
-              ⚠️ Profile unavailable. Try searching <em>"{name} Texas 2026"</em> online.
-            </div>
-          )}
+        {failed && (
+  <div style={{
+    padding: "10px 13px", background: "#f0f9ff",
+    borderRadius: 7, fontSize: 13, color: "#0c4a6e", lineHeight: 1.5,
+  }}>
+    📋 Limited public information is available for this candidate. Down-ballot races often lack accessible profiles — exactly the gap Democracy Defender was built to close.
+  </div>
+)}
 
           {profile && (
             <div className="slide-in">
